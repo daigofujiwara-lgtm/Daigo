@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>エージェント管理ダッシュボード【8期】</title>
+  <style>
+    :root {
+      --gold: #FFD700; --silver: #C0C0C0; --bronze: #CD7F32;
+      --bg: #0a0a1a;
+      --card-bg: #12122a;
+      --border: rgba(255,255,255,0.07);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+      background: var(--bg);
+      color: #e0e0ff;
+      min-height: 100vh;
+      overflow-x: auto;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a0533 0%, #0d1b4b 50%, #0a0a1a 100%);
+      border-bottom: 1px solid rgba(130,80,255,0.4);
+      padding: 22px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 40px rgba(100,50,255,0.25);
+    }
+
+    .header-left h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .header-left p {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.4);
+      margin-top: 2px;
+    }
+
+    /* Stats row */
+    .stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 10px 18px;
+      text-align: center;
+    }
+
+    .stat .s-val {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #a78bfa;
+    }
+
+    .stat .s-lbl {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.4);
+      margin-top: 1px;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      padding: 16px 32px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .controls label { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+
+    .filter-btn {
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+    .filter-btn.active {
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      border-color: transparent;
+      color: white;
+      font-weight: 700;
+      box-shadow: 0 0 12px rgba(124,58,237,0.5);
+    }
+
+    select.sort-sel {
+      padding: 7px 32px 7px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+      color: #e0e0ff;
+      font-size: 0.8rem;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23aaa' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      margin-left: 8px;
+    }
+
+    /* ── Kanban Board ── */
+    .board {
+      display: flex;
+      gap: 16px;
+      padding: 24px 32px 40px;
+      min-width: max-content;
+      align-items: flex-start;
+    }
+
+    /* ── Column ── */
+    .column {
+      width: 280px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .column-header {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .col-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .col-badge {
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+    }
+
+    .col-sum {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.4);
+      padding: 6px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+    }
+
+    .col-sum span { color: rgba(255,255,255,0.7); font-weight: 700; }
+
+    .column-cards {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+
+    .column-cards::-webkit-scrollbar { width: 4px; }
+    .column-cards::-webkit-scrollbar-track { background: transparent; }
+    .column-cards::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    /* ── Agent Card ── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      position: relative;
+      transition: transform 0.15s, box-shadow 0.15s;
+      cursor: default;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+
+    .card.rank-1 { border-color: rgba(255,215,0,0.5); background: linear-gradient(135deg, #1a1200, #12122a); }
+    .card.rank-2 { border-color: rgba(192,192,192,0.4); background: linear-gradient(135deg, #111118, #12122a); }
+    .card.rank-3 { border-color: rgba(205,127,50,0.4); background: linear-gradient(135deg, #130d00, #12122a); }
+    .card.rank-1:hover { box-shadow: 0 8px 30px rgba(255,215,0,0.2); }
+    .card.rank-2:hover { box-shadow: 0 8px 30px rgba(192,192,192,0.15); }
+    .card.rank-3:hover { box-shadow: 0 8px 30px rgba(205,127,50,0.2); }
+
+    .card-rank {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 1rem;
+      font-weight: 900;
+    }
+
+    .rank-num {
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: rgba(255,255,255,0.25);
+      position: absolute;
+      top: 10px;
+      right: 12px;
+    }
+
+    .card-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #e8e8ff;
+      padding-right: 28px;
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+
+    .card-name .num { color: rgba(255,255,255,0.3); font-weight: 400; font-size: 0.75rem; margin-right: 4px; }
+
+    .card-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .metric {
+      background: rgba(255,255,255,0.04);
+      border-radius: 8px;
+      padding: 7px 9px;
+    }
+
+    .metric .m-lbl {
+      font-size: 0.62rem;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .metric .m-val {
+      font-size: 0.9rem;
+      font-weight: 800;
+      margin-top: 2px;
+    }
+
+    .m-margin { color: #4ade80; }
+    .m-sales  { color: #60a5fa; }
+    .m-rows   { color: #f472b6; }
+    .m-rate   { color: #fbbf24; }
+
+    .m-val.negative { color: #f87171 !important; }
+
+    /* Glow effect for top ranks */
+    .card.rank-1::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(255,215,0,0.15), transparent);
+      z-index: -1;
+    }
+
+    /* Column colors */
+    .col-1 .column-header { background: linear-gradient(135deg, rgba(124,58,237,0.3), transparent); }
+    .col-2 .column-header { background: linear-gradient(135deg, rgba(37,99,235,0.3), transparent); }
+    .col-3 .column-header { background: linear-gradient(135deg, rgba(5,150,105,0.3), transparent); }
+    .col-4 .column-header { background: linear-gradient(135deg, rgba(220,38,38,0.3), transparent); }
+    .col-5 .column-header { background: linear-gradient(135deg, rgba(180,83,9,0.3), transparent); }
+    .col-6 .column-header { background: linear-gradient(135deg, rgba(30,64,175,0.3), transparent); }
+
+    .col-1 .col-title { color: #a78bfa; }
+    .col-2 .col-title { color: #60a5fa; }
+    .col-3 .col-title { color: #34d399; }
+    .col-4 .col-title { color: #f87171; }
+    .col-5 .col-title { color: #fbbf24; }
+    .col-6 .col-title { color: #818cf8; }
+
+    .col-1 .col-badge { background: rgba(124,58,237,0.25); color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }
+    .col-2 .col-badge { background: rgba(37,99,235,0.25); color: #60a5fa; border: 1px solid rgba(37,99,235,0.3); }
+    .col-3 .col-badge { background: rgba(5,150,105,0.25); color: #34d399; border: 1px solid rgba(5,150,105,0.3); }
+    .col-4 .col-badge { background: rgba(220,38,38,0.25); color: #f87171; border: 1px solid rgba(220,38,38,0.3); }
+    .col-5 .col-badge { background: rgba(180,83,9,0.25); color: #fbbf24; border: 1px solid rgba(180,83,9,0.3); }
+    .col-6 .col-badge { background: rgba(99,102,241,0.25); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
+
+    .hidden { display: none !important; }
+
+    /* Progress bar */
+    .margin-bar {
+      height: 3px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .margin-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>⚡ エージェント管理ダッシュボード【8期】</h1>
+    <p>2025年04月〜2026年03月 ｜ 全エージェント累計実績</p>
+  </div>
+  <div class="stats" id="headerStats"></div>
+</header>
+
+<div class="controls">
+  <label>事業部：</label>
+  <div id="filterBtns"></div>
+  <label style="margin-left:12px;">並び替え：</label>
+  <select class="sort-sel" id="sortSel">
+    <option value="margin_desc">利鞘 多い順</option>
+    <option value="margin_asc">利鞘 少ない順</option>
+    <option value="sales_desc">売上 多い順</option>
+    <option value="rows_desc">行数 多い順</option>
+    <option value="rate_desc">利鞘率 高い順</option>
+  </select>
+</div>
+
+<div class="board" id="board"></div>
+
+<script>
+const RAW = [
+  {"agent":"150_升田彩夏","dept":"第一事業部","sales":396271415,"margin":164811577,"rows":728},
+  {"agent":"126_齊藤陽香","dept":"第四事業部","sales":167393615,"margin":135365849,"rows":468},
+  {"agent":"109_森山優希","dept":"第三事業部","sales":184657655,"margin":133764149,"rows":499},
+  {"agent":"138_熊澤朱音","dept":"第四事業部","sales":204904255,"margin":131963913,"rows":513},
+  {"agent":"135_矢野未来","dept":"第二事業部","sales":111394388,"margin":110251700,"rows":300},
+  {"agent":"157_齊藤芽衣","dept":"第二事業部","sales":143285425,"margin":107696815,"rows":887},
+  {"agent":"153_田中優希","dept":"第二事業部","sales":163793371,"margin":101504398,"rows":734},
+  {"agent":"156_入江優衣","dept":"役員室","sales":220827913,"margin":96641378,"rows":94},
+  {"agent":"122_畝本庄之介","dept":"第二事業部","sales":122770810,"margin":80373742,"rows":763},
+  {"agent":"162_田近颯","dept":"第一事業部","sales":165467144,"margin":77424054,"rows":1157},
+  {"agent":"145_中道美貴","dept":"第二事業部","sales":87399812,"margin":72091539,"rows":288},
+  {"agent":"142_細井弘貴","dept":"第四事業部","sales":67544577,"margin":71691710,"rows":240},
+  {"agent":"148_多久島大輝","dept":"第一事業部","sales":167486145,"margin":69976400,"rows":597},
+  {"agent":"104_田宮藍人","dept":"第二事業部","sales":93300200,"margin":68318425,"rows":747},
+  {"agent":"160_鳩貝翔大","dept":"第一事業部","sales":182537033,"margin":68043485,"rows":601},
+  {"agent":"130_髙橋恒雅","dept":"第四事業部","sales":97002283,"margin":63358478,"rows":159},
+  {"agent":"125_中山樹","dept":"第三事業部","sales":77576568,"margin":62531782,"rows":404},
+  {"agent":"165_田村陽貴","dept":"第四事業部","sales":86473161,"margin":62494380,"rows":286},
+  {"agent":"159_平野真菜","dept":"第三事業部","sales":123747001,"margin":62015374,"rows":1438},
+  {"agent":"143_松林航大","dept":"第三事業部","sales":89180042,"margin":61023856,"rows":708},
+  {"agent":"116_衛藤圭吾","dept":"第三事業部","sales":65133940,"margin":57866751,"rows":169},
+  {"agent":"151_阪口史穏","dept":"第三事業部","sales":90847377,"margin":55363070,"rows":671},
+  {"agent":"158_勝連悠之介","dept":"第一事業部","sales":116488547,"margin":55195004,"rows":1110},
+  {"agent":"107_坪田匠未","dept":"第一事業部","sales":114999862,"margin":47089404,"rows":633},
+  {"agent":"141_中村俊太","dept":"第四事業部","sales":88016165,"margin":38707613,"rows":509},
+  {"agent":"164_斉藤杜早","dept":"第四事業部","sales":59257072,"margin":35600429,"rows":363},
+  {"agent":"155_横田凜生","dept":"第一事業部","sales":51207117,"margin":33346347,"rows":947},
+  {"agent":"154_北野麗香","dept":"第四事業部","sales":48821878,"margin":33038779,"rows":394},
+  {"agent":"163_石川紗妃","dept":"第四事業部","sales":53380915,"margin":31746351,"rows":381},
+  {"agent":"103_菊川純","dept":"第一事業部","sales":44765780,"margin":27086051,"rows":490},
+  {"agent":"129_岩本裕生","dept":"第三事業部","sales":14158440,"margin":24123827,"rows":83},
+  {"agent":"106_松浦弘希","dept":"第四事業部","sales":30746500,"margin":21732588,"rows":307},
+  {"agent":"179_松平大空","dept":"第四事業部","sales":42705600,"margin":21515748,"rows":149},
+  {"agent":"161_吉川峻平","dept":"第二事業部","sales":24051269,"margin":17870924,"rows":264},
+  {"agent":"128_甲田仁志","dept":"第三事業部","sales":35980951,"margin":16933096,"rows":335},
+  {"agent":"102_秋田谷駿","dept":"第一事業部","sales":18123862,"margin":15470260,"rows":59},
+  {"agent":"140_眞下拓斗","dept":"第四事業部","sales":11905960,"margin":15257170,"rows":200},
+  {"agent":"169_塙賢人","dept":"第三事業部","sales":27270672,"margin":14969314,"rows":218},
+  {"agent":"136_新井大史","dept":"第四事業部","sales":-764000,"margin":13310000,"rows":18},
+  {"agent":"170_行元裕尚","dept":"第二事業部","sales":23984857,"margin":11631049,"rows":204},
+  {"agent":"131_山口陽一朗","dept":"第三事業部","sales":14007520,"margin":10315700,"rows":73},
+  {"agent":"189_北見卓哉","dept":"その他","sales":35105900,"margin":8904038,"rows":300},
+  {"agent":"130_高橋恒雅","dept":"第四事業部","sales":4047691,"margin":7457120,"rows":26},
+  {"agent":"188_児玉征哉","dept":"その他","sales":21128300,"margin":6556807,"rows":65},
+  {"agent":"120_松本優也","dept":"第一事業部","sales":7600770,"margin":6081596,"rows":30},
+  {"agent":"114_齋藤世里奈","dept":"第一事業部","sales":4657682,"margin":6000000,"rows":3},
+  {"agent":"497_新井柊馬","dept":"その他","sales":3852500,"margin":5703975,"rows":7},
+  {"agent":"187_杉本一真","dept":"第一事業部","sales":0,"margin":5107800,"rows":35},
+  {"agent":"177_古山愛美","dept":"その他","sales":8332800,"margin":4242179,"rows":87},
+  {"agent":"187_磯貝樹虎","dept":"その他","sales":13371700,"margin":4004377,"rows":112},
+  {"agent":"166_石川雄大","dept":"第二事業部","sales":792275,"margin":3986600,"rows":62},
+  {"agent":"173_梅山輝斗","dept":"その他","sales":12350000,"margin":3739082,"rows":47},
+  {"agent":"118_杉山竜輔","dept":"第四事業部","sales":2354600,"margin":2842500,"rows":44},
+  {"agent":"175_畠山心優","dept":"その他","sales":4799500,"margin":2747463,"rows":44},
+  {"agent":"186_吉羽歩","dept":"第二事業部","sales":153000,"margin":2339735,"rows":20},
+  {"agent":"174_筆谷涼","dept":"その他","sales":2878400,"margin":1438149,"rows":31},
+  {"agent":"132_加藤拓真","dept":"第二事業部","sales":821411,"margin":800000,"rows":4},
+  {"agent":"190_加藤翔軌","dept":"その他","sales":1122000,"margin":461946,"rows":9},
+  {"agent":"176_山田壱成","dept":"その他","sales":747700,"margin":386414,"rows":52},
+  {"agent":"183_鈴木音","dept":"その他","sales":1725000,"margin":319411,"rows":24},
+  {"agent":"108_山本大隆","dept":"第三事業部","sales":0,"margin":7500,"rows":1},
+  {"agent":"171_馬場龍輝","dept":"その他","sales":202700,"margin":4269,"rows":4},
+  {"agent":"117_杉田美優","dept":"第二事業部","sales":1596773,"margin":0,"rows":9},
+  {"agent":"191_丸山望遥","dept":"その他","sales":0,"margin":-363636,"rows":10},
+  {"agent":"167_塚田宙弥","dept":"第三事業部","sales":38277295,"margin":-12895929,"rows":334}
+];
+
+// 事業部グループ（正規化）
+const DEPT_ORDER = ["第一事業部","第二事業部","第三事業部","第四事業部","役員室","その他"];
+const DEPT_COLORS = [1,2,3,4,5,6];
+
+function fmt(n) {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1e8) return sign + (abs/1e8).toFixed(1) + '億';
+  if (abs >= 1e4) return sign + Math.round(abs/1e4) + '万';
+  return sign + abs.toLocaleString();
+}
+
+function rate(s, m) {
+  if (!s || s <= 0) return '―';
+  return (m / s * 100).toFixed(1) + '%';
+}
+
+function rankEmoji(r) {
+  if (r === 1) return '🥇';
+  if (r === 2) return '🥈';
+  if (r === 3) return '🥉';
+  return null;
+}
+
+let currentFilter = 'all';
+let currentSort  = 'margin_desc';
+
+function sortData(arr) {
+  return [...arr].sort((a, b) => {
+    if (currentSort === 'margin_desc') return b.margin - a.margin;
+    if (currentSort === 'margin_asc')  return a.margin - b.margin;
+    if (currentSort === 'sales_desc')  return b.sales - a.sales;
+    if (currentSort === 'rows_desc')   return b.rows - a.rows;
+    if (currentSort === 'rate_desc') {
+      const ra = a.sales > 0 ? a.margin / a.sales : -Infinity;
+      const rb = b.sales > 0 ? b.margin / b.sales : -Infinity;
+      return rb - ra;
+    }
+    return 0;
+  });
+}
+
+// Global rank by margin
+const globalSorted = [...RAW].sort((a,b) => b.margin - a.margin);
+const globalRank = {};
+globalSorted.forEach((d,i) => { globalRank[d.agent] = i + 1; });
+
+// Max margin for bar
+const maxMargin = Math.max(...RAW.map(d => d.margin));
+
+function buildHeaderStats() {
+  const total = RAW.length;
+  const totalSales  = RAW.reduce((s,d)=>s+d.sales,0);
+  const totalMargin = RAW.reduce((s,d)=>s+d.margin,0);
+  const totalRows   = RAW.reduce((s,d)=>s+d.rows,0);
+  document.getElementById('headerStats').innerHTML = `
+    <div class="stat"><div class="s-val">${total}名</div><div class="s-lbl">エージェント</div></div>
+    <div class="stat"><div class="s-val">${fmt(totalSales)}</div><div class="s-lbl">総売上</div></div>
+    <div class="stat"><div class="s-val">${fmt(totalMargin)}</div><div class="s-lbl">総利鞘</div></div>
+    <div class="stat"><div class="s-val">${totalRows.toLocaleString()}</div><div class="s-lbl">総行数</div></div>
+  `;
+}
+
+function buildFilters() {
+  const container = document.getElementById('filterBtns');
+  const btns = ['all', ...DEPT_ORDER].map(d => {
+    const label = d === 'all' ? 'すべて' : d;
+    return `<button class="filter-btn ${d==='all'?'active':''}" data-dept="${d}">${label}</button>`;
+  });
+  container.innerHTML = btns.join('');
+  container.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    currentFilter = btn.dataset.dept;
+    container.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.dept === currentFilter));
+    renderBoard();
+  });
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  const depts = currentFilter === 'all' ? DEPT_ORDER : [currentFilter];
+
+  depts.forEach((dept, colIdx) => {
+    let agents = RAW.filter(d => d.dept === dept);
+    if (agents.length === 0) return;
+    agents = sortData(agents);
+
+    const colClass = `col-${DEPT_COLORS[colIdx % DEPT_COLORS.length]}`;
+    const deptMargin = agents.reduce((s,d)=>s+d.margin,0);
+    const deptSales  = agents.reduce((s,d)=>s+d.sales,0);
+
+    const col = document.createElement('div');
+    col.className = `column ${colClass}`;
+    col.innerHTML = `
+      <div class="column-header">
+        <span class="col-title">${dept}</span>
+        <span class="col-badge">${agents.length}名</span>
+      </div>
+      <div class="col-sum">
+        利鞘：<span>${fmt(deptMargin)}</span>
+        売上：<span>${fmt(deptSales)}</span>
+      </div>
+      <div class="column-cards" id="cards-${colIdx}"></div>
+    `;
+
+    board.appendChild(col);
+    const cardsEl = col.querySelector('.column-cards');
+
+    // Local rank within this dept (by current sort for visual rank #)
+    agents.forEach((d, localIdx) => {
+      const gRank = globalRank[d.agent];
+      const emoji = rankEmoji(gRank);
+      const barWidth = Math.max(0, (d.margin / maxMargin * 100)).toFixed(1);
+      const marginClass = d.margin < 0 ? 'negative' : '';
+      const salesClass  = d.sales  < 0 ? 'negative' : '';
+      const rateVal = d.sales > 0 ? (d.margin / d.sales * 100).toFixed(1) + '%' : '―';
+      const [num, name] = (() => {
+        const m = d.agent.match(/^(\d+)_(.+)$/);
+        return m ? [m[1], m[2]] : ['', d.agent];
+      })();
+
+      let rankClass = '';
+      if (gRank === 1) rankClass = 'rank-1';
+      else if (gRank === 2) rankClass = 'rank-2';
+      else if (gRank === 3) rankClass = 'rank-3';
+
+      // Bar gradient based on dept
+      const barColors = [
+        'linear-gradient(90deg,#7c3aed,#a78bfa)',
+        'linear-gradient(90deg,#1d4ed8,#60a5fa)',
+        'linear-gradient(90deg,#065f46,#34d399)',
+        'linear-gradient(90deg,#991b1b,#f87171)',
+        'linear-gradient(90deg,#92400e,#fbbf24)',
+        'linear-gradient(90deg,#3730a3,#818cf8)',
+      ];
+      const barGrad = barColors[colIdx % barColors.length];
+
+      const card = document.createElement('div');
+      card.className = `card ${rankClass}`;
+      card.innerHTML = `
+        ${emoji
+          ? `<div class="card-rank">${emoji}</div>`
+          : `<div class="rank-num">#${gRank}</div>`
+        }
+        <div class="card-name"><span class="num">${num}</span>${name}</div>
+        <div class="card-metrics">
+          <div class="metric">
+            <div class="m-lbl">利鞘</div>
+            <div class="m-val m-margin ${marginClass}">${fmt(d.margin)}</div>
+          </div>
+          <div class="metric">
+            <div class="m-lbl">売上</div>
+            <div class="m-val m-sales ${salesClass}">${fmt(d.sales)}</div>
+          </div>
+          <div class="metric">
+            <div class="m-lbl">行数</div>
+            <div class="m-val m-rows">${d.rows.toLocaleString()}</div>
+          </div>
+          <div class="metric">
+            <div class="m-lbl">利鞘率</div>
+            <div class="m-val m-rate">${rateVal}</div>
+          </div>
+        </div>
+        <div class="margin-bar">
+          <div class="margin-bar-fill" style="width:${barWidth}%;background:${barGrad}"></div>
+        </div>
+      `;
+      cardsEl.appendChild(card);
+    });
+  });
+}
+
+document.getElementById('sortSel').addEventListener('change', e => {
+  currentSort = e.target.value;
+  renderBoard();
+});
+
+buildHeaderStats();
+buildFilters();
+renderBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>インフルエンサー管理ダッシュボード</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px 40px;
+      box-shadow: 0 4px 20px rgba(102,126,234,0.3);
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* Stats cards */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .stat-card .label {
+      font-size: 0.78rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .stat-card .value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 6px;
+      color: #1a1a2e;
+    }
+
+    .stat-card .sub {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 2px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .controls label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #555;
+    }
+
+    select {
+      padding: 10px 16px;
+      border: 2px solid #e8e8e8;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: white;
+      color: #1a1a2e;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+
+    select:focus { border-color: #667eea; }
+
+    /* Table */
+    .table-wrap {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #fafafa;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    th {
+      padding: 14px 20px;
+      text-align: left;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #888;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #f5f5f5;
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f9f8ff; }
+
+    td {
+      padding: 16px 20px;
+      font-size: 0.92rem;
+    }
+
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .influencer-name {
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .followers {
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .followers .unit {
+      font-size: 0.78rem;
+      color: #aaa;
+      font-weight: 400;
+      margin-left: 2px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge-instagram { background: #fce4ec; color: #c2185b; }
+    .badge-youtube   { background: #fce8e8; color: #c62828; }
+    .badge-tiktok    { background: #e8f5e9; color: #1b5e20; }
+    .badge-twitter   { background: #e3f2fd; color: #0d47a1; }
+
+    .person {
+      color: #555;
+      font-size: 0.88rem;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 48px;
+      color: #aaa;
+      font-size: 0.95rem;
+    }
+
+    .count-bar {
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    .count-bar span {
+      font-weight: 700;
+      color: #667eea;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>インフルエンサー管理ダッシュボード</h1>
+  <p>登録インフルエンサーの一覧・フィルタリング・ソート</p>
+</header>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats" id="stats"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <label>媒体：</label>
+    <select id="platformFilter">
+      <option value="all">すべて</option>
+      <option value="Instagram">Instagram</option>
+      <option value="YouTube">YouTube</option>
+      <option value="TikTok">TikTok</option>
+      <option value="Twitter/X">Twitter/X</option>
+    </select>
+
+    <label style="margin-left:8px;">並び替え：</label>
+    <select id="sortOrder">
+      <option value="desc">フォロワー数 多い順</option>
+      <option value="asc">フォロワー数 少ない順</option>
+      <option value="name">名前順 (A→Z)</option>
+    </select>
+  </div>
+
+  <div class="count-bar" id="countBar"></div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>インフルエンサー</th>
+          <th>媒体</th>
+          <th>フォロワー数</th>
+          <th>担当者</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const data = [
+    { name: "田中 さくら",   platform: "Instagram", followers: 1250000, person: "山田 太郎" },
+    { name: "Kenji_Vlog",    platform: "YouTube",   followers: 980000,  person: "佐藤 花子" },
+    { name: "みんなのレシピ", platform: "TikTok",   followers: 2100000, person: "鈴木 一郎" },
+    { name: "ゆいちゃんねる", platform: "YouTube",  followers: 670000,  person: "高橋 明子" },
+    { name: "StyleByMika",   platform: "Instagram", followers: 430000,  person: "伊藤 誠" },
+    { name: "たかし旅記録",  platform: "Twitter/X", followers: 315000,  person: "渡辺 里奈" },
+    { name: "FitnessByRyo",  platform: "TikTok",    followers: 1800000, person: "山田 太郎" },
+    { name: "おうち料理あい", platform: "Instagram", followers: 560000, person: "中村 浩二" },
+    { name: "テクノ解説ch",  platform: "YouTube",   followers: 890000,  person: "小林 美咲" },
+    { name: "HaruDaily",     platform: "Twitter/X", followers: 245000,  person: "加藤 健太" },
+  ];
+
+  const avatarColors = [
+    "#667eea","#f093fb","#4facfe","#43e97b","#fa709a",
+    "#a18cd1","#fda085","#30cfd0","#667eea","#f5576c"
+  ];
+
+  const platformIcons = {
+    "Instagram": "📸",
+    "YouTube":   "▶",
+    "TikTok":    "♪",
+    "Twitter/X": "𝕏",
+  };
+
+  const platformClass = {
+    "Instagram": "badge-instagram",
+    "YouTube":   "badge-youtube",
+    "TikTok":    "badge-tiktok",
+    "Twitter/X": "badge-twitter",
+  };
+
+  function formatFollowers(n) {
+    if (n >= 1000000) return { num: (n / 1000000).toFixed(1), unit: "万人以上" };
+    if (n >= 10000)   return { num: Math.round(n / 10000),    unit: "万人" };
+    return { num: n.toLocaleString(), unit: "人" };
+  }
+
+  function initials(name) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return parts[0][0] + parts[1][0];
+    return name.slice(0, 2);
+  }
+
+  function renderStats(filtered) {
+    const total = filtered.length;
+    const totalFollowers = filtered.reduce((s, d) => s + d.followers, 0);
+    const platforms = [...new Set(filtered.map(d => d.platform))].length;
+    const avg = total ? Math.round(totalFollowers / total) : 0;
+
+    document.getElementById("stats").innerHTML = `
+      <div class="stat-card">
+        <div class="label">登録数</div>
+        <div class="value">${total}</div>
+        <div class="sub">インフルエンサー</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">合計フォロワー</div>
+        <div class="value">${(totalFollowers / 10000).toFixed(0)}<span style="font-size:1rem;font-weight:400;color:#aaa"> 万</span></div>
+        <div class="sub">フォロワー合計</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">媒体数</div>
+        <div class="value">${platforms}</div>
+        <div class="sub">プラットフォーム</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">平均フォロワー</div>
+        <div class="value">${(avg / 10000).toFixed(1)}<span style="font-size:1rem;font-weight:400;color:#aaa"> 万</span></div>
+        <div class="sub">1人あたり</div>
+      </div>
+    `;
+  }
+
+  function render() {
+    const platform = document.getElementById("platformFilter").value;
+    const sort     = document.getElementById("sortOrder").value;
+
+    let list = platform === "all" ? [...data] : data.filter(d => d.platform === platform);
+
+    if (sort === "desc") list.sort((a, b) => b.followers - a.followers);
+    else if (sort === "asc") list.sort((a, b) => a.followers - b.followers);
+    else list.sort((a, b) => a.name.localeCompare(b.name));
+
+    renderStats(list);
+
+    document.getElementById("countBar").innerHTML =
+      `<span>${list.length}</span> 件表示中`;
+
+    const tbody = document.getElementById("tableBody");
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty">該当するインフルエンサーが見つかりません</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map((d, i) => {
+      const color = avatarColors[data.indexOf(d)];
+      const f = formatFollowers(d.followers);
+      const icon = platformIcons[d.platform] || "";
+      const cls  = platformClass[d.platform] || "";
+      return `
+        <tr>
+          <td>
+            <div class="name-cell">
+              <div class="avatar" style="background:${color}">${initials(d.name)}</div>
+              <span class="influencer-name">${d.name}</span>
+            </div>
+          </td>
+          <td><span class="badge ${cls}">${icon} ${d.platform}</span></td>
+          <td class="followers">${f.num}<span class="unit">${f.unit}</span></td>
+          <td class="person">${d.person}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  document.getElementById("platformFilter").addEventListener("change", render);
+  document.getElementById("sortOrder").addEventListener("change", render);
+
+  render();
+</script>
+</body>
+</html>
